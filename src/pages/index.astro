@@ -1,0 +1,100 @@
+---
+import WorkCard from "../components/WorkCard.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getPublishedChapters, getPublishedWorks } from "../lib/content";
+import { siteConfig } from "../site.config";
+
+const works = await getPublishedWorks();
+const workCards = await Promise.all(
+  works.map(async (work) => {
+    const chapters = await getPublishedChapters(work.data.slug, work.data.type);
+    return {
+      work,
+      chapterCount: chapters.length,
+      latestChapterTitle: chapters.at(-1)?.data.title,
+    };
+  }),
+);
+---
+
+<BaseLayout>
+  <section class="hero shell">
+    <p class="eyebrow">小说 · 漫画 · 连载作品</p>
+    <h1>故事不必喧哗，<br /><em>只需被好好阅读。</em></h1>
+    <p class="hero__intro">{siteConfig.tagline}。适合手机，也适合留一点时间给自己。</p>
+  </section>
+
+  <section class="continue-reading shell" data-continue-section hidden>
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">上次读到</p>
+        <h2>继续阅读</h2>
+      </div>
+    </div>
+    <a class="continue-card" data-continue-link href="#">
+      <span class="continue-card__icon" aria-hidden="true">↗</span>
+      <span>
+        <small data-continue-work></small>
+        <strong data-continue-chapter></strong>
+      </span>
+      <span class="continue-card__action">回到章节</span>
+    </a>
+  </section>
+
+  <section class="shelf shell" aria-labelledby="shelf-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Library</p>
+        <h2 id="shelf-title">作品书架</h2>
+      </div>
+      {works.length > 0 && <span>{works.length} 部作品</span>}
+    </div>
+
+    {
+      workCards.length > 0 ? (
+        <div class="work-grid">
+          {workCards.map((card) => <WorkCard {...card} />)}
+        </div>
+      ) : (
+        <div class="empty-shelf">
+          <div class="empty-shelf__books" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <p class="eyebrow">书架已经准备好了</p>
+          <h2>第一部作品正在路上</h2>
+          <p>这里将收录小说与漫画。内容发布后，作品和章节会自动出现在书架上。</p>
+        </div>
+      )
+    }
+  </section>
+
+  <script>
+    interface ReadingProgress {
+      path: string;
+      workTitle: string;
+      chapterTitle: string;
+    }
+
+    const section = document.querySelector<HTMLElement>("[data-continue-section]");
+    const link = document.querySelector<HTMLAnchorElement>("[data-continue-link]");
+
+    try {
+      const progress = JSON.parse(
+        localStorage.getItem("raga-progress-v1") ?? "null",
+      ) as ReadingProgress | null;
+      if (progress && section && link) {
+        link.href = progress.path;
+        const workName = link.querySelector<HTMLElement>("[data-continue-work]");
+        const chapterName = link.querySelector<HTMLElement>("[data-continue-chapter]");
+        if (workName) workName.textContent = progress.workTitle;
+        if (chapterName) chapterName.textContent = progress.chapterTitle;
+        section.hidden = false;
+      }
+    } catch {
+      localStorage.removeItem("raga-progress-v1");
+    }
+  </script>
+</BaseLayout>
+

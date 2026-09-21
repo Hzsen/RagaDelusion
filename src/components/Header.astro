@@ -1,0 +1,25 @@
+---
+import { siteConfig } from "../site.config";
+import { sitePath } from "../lib/urls";
+---
+
+<header class="site-header">
+  <div class="site-header__inner shell">
+    <a class="brand" href={sitePath()} aria-label={`${siteConfig.name} 首页`}>
+      <span class="brand__mark" aria-hidden="true">R</span>
+      <span>
+        <strong>{siteConfig.name}</strong>
+        <small>作品阅读站</small>
+      </span>
+    </a>
+
+    <nav class="site-nav" aria-label="主要导航">
+      <a href={sitePath()}>书架</a>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换明暗主题">
+        <span class="theme-toggle__sun" aria-hidden="true">☼</span>
+        <span class="theme-toggle__moon" aria-hidden="true">☾</span>
+      </button>
+    </nav>
+  </div>
+</header>
+

@@ -1,0 +1,223 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import {
+  formatDate,
+  getPublishedChapters,
+  getPublishedWorks,
+  type ChapterEntry,
+} from "../../../../lib/content";
+import {
+  assetPath,
+  chapterPath,
+  workPath,
+} from "../../../../lib/urls";
+import { siteConfig } from "../../../../site.config";
+
+export async function getStaticPaths() {
+  const works = await getPublishedWorks();
+  const paths = await Promise.all(
+    works.map(async (work) => {
+      const chapters = await getPublishedChapters(work.data.slug, work.data.type);
+      return chapters.map((chapter, index) => ({
+        params: {
+          work: work.data.slug,
+          chapter: chapter.data.chapterId,
+        },
+        props: {
+          work,
+          chapter,
+          previousChapter: chapters[index - 1],
+          nextChapter: chapters[index + 1],
+        },
+      }));
+    }),
+  );
+  return paths.flat();
+}
+
+const { work, chapter, previousChapter, nextChapter } = Astro.props;
+const isNovel = work.data.type === "novel";
+const chapterTitle = `${chapter.data.chapterId} · ${chapter.data.title}`;
+const shareImage = chapter.data.shareImage ?? work.data.shareImage ?? work.data.cover;
+const progressRecord = {
+  path: chapterPath(work.data.slug, chapter.data.chapterId),
+  workSlug: work.data.slug,
+  workTitle: work.data.title,
+  chapterId: chapter.data.chapterId,
+  chapterTitle: chapter.data.title,
+};
+const { Content } = await render(chapter);
+---
+
+<BaseLayout
+  title={`${chapter.data.title}｜${work.data.title}`}
+  description={chapter.data.summary}
+  image={shareImage}
+  type="article"
+>
+  <div class:list={["reading-shell", { "reading-shell--comic": !isNovel }]} data-reading-shell>
+    <div class="reading-progress" aria-hidden="true"><span data-reading-progress></span></div>
+
+    <header class="chapter-header">
+      <a class="chapter-header__back" href={workPath(work.data.slug)}>← 返回目录</a>
+      <p>{work.data.title}</p>
+      <h1>{chapter.data.title}</h1>
+      <div class="chapter-header__meta">
+        <span>第 {chapter.data.chapterId} 章</span>
+        <time datetime={chapter.data.publishedAt.toISOString()}>
+          {formatDate(chapter.data.publishedAt)}
+        </time>
+      </div>
+      <p class="chapter-header__summary">{chapter.data.summary}</p>
+    </header>
+
+    {
+      isNovel ? (
+        <article class="novel-body prose" data-novel-body>
+          <Content />
+        </article>
+      ) : (
+        <article class="comic-body" aria-label={chapterTitle}>
+          {(chapter as Extract<ChapterEntry, { collection: "comicChapters" }>).data.pages.map(
+            (page, index) => (
+              <figure>
+                <img
+                  src={assetPath(page.src)}
+                  alt={page.alt}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  fetchpriority={index === 0 ? "high" : "auto"}
+                  decoding="async"
+                />
+                <figcaption>第 {index + 1} 页</figcaption>
+              </figure>
+            ),
+          )}
+        </article>
+      )
+    }
+
+    <nav class="chapter-navigation" aria-label="章节导航">
+      {
+        previousChapter ? (
+          <a href={chapterPath(work.data.slug, previousChapter.data.chapterId)}>
+            <small>上一章</small>
+            <strong>{previousChapter.data.title}</strong>
+          </a>
+        ) : (
+          <span class="chapter-navigation__empty"><small>上一章</small><strong>已经是第一章</strong></span>
+        )
+      }
+      <a class="chapter-navigation__contents" href={workPath(work.data.slug)}>目录</a>
+      {
+        nextChapter ? (
+          <a class="chapter-navigation__next" href={chapterPath(work.data.slug, nextChapter.data.chapterId)}>
+            <small>下一章</small>
+            <strong>{nextChapter.data.title}</strong>
+          </a>
+        ) : (
+          <span class="chapter-navigation__empty chapter-navigation__next"><small>下一章</small><strong>已读到最新</strong></span>
+        )
+      }
+    </nav>
+
+    {
+      work.data.discordUrl || siteConfig.discordUrl ? (
+        <a
+          class="discord-link"
+          href={work.data.discordUrl || siteConfig.discordUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          前往 Discord 讨论 <span aria-hidden="true">↗</span>
+        </a>
+      ) : null
+    }
+  </div>
+
+  {
+    isNovel && (
+      <div class="reader-tools" aria-label="阅读设置">
+        <button type="button" data-font-decrease aria-label="缩小字号">字−</button>
+        <button type="button" data-font-increase aria-label="放大字号">字＋</button>
+        <button type="button" data-reading-theme aria-label="切换明暗主题">明 / 暗</button>
+        <a href={workPath(work.data.slug)} aria-label="打开章节目录">目录</a>
+      </div>
+    )
+  }
+
+  <script define:vars={{ progressRecord }}>
+    const PROGRESS_KEY = "raga-progress-v1";
+    const SETTINGS_KEY = "raga-reader-settings-v1";
+    const readerShell = document.querySelector("[data-reading-shell]");
+    const progressBar = document.querySelector("[data-reading-progress]");
+    const fontSizes = [0.9, 1, 1.1, 1.2, 1.32, 1.45];
+    let fontSizeIndex = 2;
+    let saveScheduled = false;
+
+    function updateProgressBar() {
+      const maximum = document.documentElement.scrollHeight - innerHeight;
+      const percent = maximum > 0 ? Math.min(100, (scrollY / maximum) * 100) : 0;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+    }
+
+    function saveProgress() {
+      localStorage.setItem(
+        PROGRESS_KEY,
+        JSON.stringify({ ...progressRecord, scrollY, updatedAt: new Date().toISOString() }),
+      );
+      saveScheduled = false;
+    }
+
+    function scheduleSave() {
+      updateProgressBar();
+      if (!saveScheduled) {
+        saveScheduled = true;
+        requestAnimationFrame(saveProgress);
+      }
+    }
+
+    function applyFontSize() {
+      if (readerShell) {
+        readerShell.style.setProperty("--reader-scale", fontSizes[fontSizeIndex]);
+      }
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ fontSizeIndex }));
+    }
+
+    try {
+      const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+      if (Number.isInteger(settings?.fontSizeIndex)) {
+        fontSizeIndex = Math.max(0, Math.min(fontSizes.length - 1, settings.fontSizeIndex));
+        applyFontSize();
+      }
+
+      const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null");
+      if (saved?.path === progressRecord.path && saved.scrollY > 80) {
+        history.scrollRestoration = "manual";
+        requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, saved.scrollY)));
+      }
+    } catch {
+      localStorage.removeItem(PROGRESS_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+    }
+
+    document.querySelector("[data-font-decrease]")?.addEventListener("click", () => {
+      fontSizeIndex = Math.max(0, fontSizeIndex - 1);
+      applyFontSize();
+    });
+    document.querySelector("[data-font-increase]")?.addEventListener("click", () => {
+      fontSizeIndex = Math.min(fontSizes.length - 1, fontSizeIndex + 1);
+      applyFontSize();
+    });
+    document.querySelector("[data-reading-theme]")?.addEventListener("click", () => {
+      const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem("raga-theme", nextTheme);
+    });
+
+    addEventListener("scroll", scheduleSave, { passive: true });
+    addEventListener("pagehide", saveProgress);
+    updateProgressBar();
+    saveProgress();
+  </script>
+</BaseLayout>

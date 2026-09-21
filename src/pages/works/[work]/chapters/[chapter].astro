@@ -2,7 +2,6 @@
 import { render } from "astro:content";
 import BaseLayout from "../../../../layouts/BaseLayout.astro";
 import {
-  formatDate,
   getPublishedChapters,
   getPublishedWorks,
   type ChapterEntry,
@@ -12,7 +11,6 @@ import {
   chapterPath,
   workPath,
 } from "../../../../lib/urls";
-import { siteConfig } from "../../../../site.config";
 
 export async function getStaticPaths() {
   const works = await getPublishedWorks();
@@ -57,19 +55,9 @@ const { Content } = await render(chapter);
   type="article"
 >
   <div class:list={["reading-shell", { "reading-shell--comic": !isNovel }]} data-reading-shell>
-    <div class="reading-progress" aria-hidden="true"><span data-reading-progress></span></div>
-
     <header class="chapter-header">
-      <a class="chapter-header__back" href={workPath(work.data.slug)}>← 返回目录</a>
-      <p>{work.data.title}</p>
+      <a class="back-link" href={workPath(work.data.slug)}>← {work.data.title} · 目录</a>
       <h1>{chapter.data.title}</h1>
-      <div class="chapter-header__meta">
-        <span>第 {chapter.data.chapterId} 章</span>
-        <time datetime={chapter.data.publishedAt.toISOString()}>
-          {formatDate(chapter.data.publishedAt)}
-        </time>
-      </div>
-      <p class="chapter-header__summary">{chapter.data.summary}</p>
     </header>
 
     {
@@ -105,7 +93,7 @@ const { Content } = await render(chapter);
             <strong>{previousChapter.data.title}</strong>
           </a>
         ) : (
-          <span class="chapter-navigation__empty"><small>上一章</small><strong>已经是第一章</strong></span>
+          <span class="chapter-navigation__empty" aria-label="没有上一章"></span>
         )
       }
       <a class="chapter-navigation__contents" href={workPath(work.data.slug)}>目录</a>
@@ -116,23 +104,11 @@ const { Content } = await render(chapter);
             <strong>{nextChapter.data.title}</strong>
           </a>
         ) : (
-          <span class="chapter-navigation__empty chapter-navigation__next"><small>下一章</small><strong>已读到最新</strong></span>
+          <span class="chapter-navigation__empty chapter-navigation__next" aria-label="没有下一章"></span>
         )
       }
     </nav>
 
-    {
-      work.data.discordUrl || siteConfig.discordUrl ? (
-        <a
-          class="discord-link"
-          href={work.data.discordUrl || siteConfig.discordUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          前往 Discord 讨论 <span aria-hidden="true">↗</span>
-        </a>
-      ) : null
-    }
   </div>
 
   {
@@ -141,7 +117,6 @@ const { Content } = await render(chapter);
         <button type="button" data-font-decrease aria-label="缩小字号">字−</button>
         <button type="button" data-font-increase aria-label="放大字号">字＋</button>
         <button type="button" data-reading-theme aria-label="切换明暗主题">明 / 暗</button>
-        <a href={workPath(work.data.slug)} aria-label="打开章节目录">目录</a>
       </div>
     )
   }
@@ -150,16 +125,9 @@ const { Content } = await render(chapter);
     const PROGRESS_KEY = "raga-progress-v1";
     const SETTINGS_KEY = "raga-reader-settings-v1";
     const readerShell = document.querySelector("[data-reading-shell]");
-    const progressBar = document.querySelector("[data-reading-progress]");
     const fontSizes = [0.9, 1, 1.1, 1.2, 1.32, 1.45];
     let fontSizeIndex = 2;
     let saveScheduled = false;
-
-    function updateProgressBar() {
-      const maximum = document.documentElement.scrollHeight - innerHeight;
-      const percent = maximum > 0 ? Math.min(100, (scrollY / maximum) * 100) : 0;
-      if (progressBar) progressBar.style.width = `${percent}%`;
-    }
 
     function saveProgress() {
       localStorage.setItem(
@@ -170,7 +138,6 @@ const { Content } = await render(chapter);
     }
 
     function scheduleSave() {
-      updateProgressBar();
       if (!saveScheduled) {
         saveScheduled = true;
         requestAnimationFrame(saveProgress);
@@ -217,7 +184,6 @@ const { Content } = await render(chapter);
 
     addEventListener("scroll", scheduleSave, { passive: true });
     addEventListener("pagehide", saveProgress);
-    updateProgressBar();
     saveProgress();
   </script>
 </BaseLayout>

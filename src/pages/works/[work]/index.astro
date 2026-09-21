@@ -1,15 +1,13 @@
 ---
-import { render } from "astro:content";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
-  formatDate,
   getPublishedChapters,
   getPublishedWorks,
   workStatusLabel,
   workTypeLabel,
   type WorkEntry,
 } from "../../../lib/content";
-import { assetPath, chapterPath } from "../../../lib/urls";
+import { chapterPath, sitePath } from "../../../lib/urls";
 
 export async function getStaticPaths() {
   const works = await getPublishedWorks();
@@ -22,8 +20,6 @@ interface Props {
 
 const { work } = Astro.props;
 const chapters = await getPublishedChapters(work.data.slug, work.data.type);
-const { Content } = await render(work);
-const firstChapter = chapters[0];
 ---
 
 <BaseLayout
@@ -31,60 +27,14 @@ const firstChapter = chapters[0];
   description={work.data.description}
   image={work.data.shareImage ?? work.data.cover}
 >
-  <section class="work-hero shell" style={`--work-accent: ${work.data.accent}`}>
-    <div class="work-hero__cover">
-      {
-        work.data.cover ? (
-          <img src={assetPath(work.data.cover)} alt={`${work.data.title}封面`} />
-        ) : (
-          <div class="cover-placeholder cover-placeholder--large">
-            <span class="cover-placeholder__eyebrow">{workTypeLabel(work.data.type)}</span>
-            <strong>{work.data.title}</strong>
-            <span class="cover-placeholder__rule" />
-            <small>{workStatusLabel(work.data.status)}</small>
-          </div>
-        )
-      }
-    </div>
-
-    <div class="work-hero__copy">
-      <div class="work-hero__meta">
-        <span>{workTypeLabel(work.data.type)}</span>
-        <span>{workStatusLabel(work.data.status)}</span>
-        <span>更新于 {formatDate(work.data.updatedAt)}</span>
-      </div>
-      <h1>{work.data.title}</h1>
-      <p class="work-hero__description">{work.data.description}</p>
-      <div class="tag-list tag-list--large">
-        {work.data.tags.map((tag) => <span>{tag}</span>)}
-      </div>
-      {
-        firstChapter ? (
-          <a class="button button--primary" href={chapterPath(work.data.slug, firstChapter.data.chapterId)}>
-            从第一章开始
-          </a>
-        ) : (
-          <span class="button button--disabled">尚未发布章节</span>
-        )
-      }
-    </div>
-  </section>
-
-  <div class="work-content shell">
-    <section class="work-about prose-small" aria-labelledby="about-title">
-      <p class="eyebrow">About</p>
-      <h2 id="about-title">作品简介</h2>
-      <Content />
-    </section>
+  <div class="work-page shell">
+    <a class="back-link" href={sitePath()}>← 书架</a>
+    <h1>{work.data.title}</h1>
+    <p class="work-meta">{workTypeLabel(work.data.type)} · {workStatusLabel(work.data.status)}</p>
+    <p class="work-description">{work.data.description}</p>
 
     <section class="chapter-list" aria-labelledby="chapters-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Contents</p>
-          <h2 id="chapters-title">章节目录</h2>
-        </div>
-        <span>{chapters.length} 章</span>
-      </div>
+      <h2 id="chapters-title">章节</h2>
       {
         chapters.length > 0 ? (
           <ol>
@@ -92,25 +42,16 @@ const firstChapter = chapters[0];
               <li>
                 <a href={chapterPath(work.data.slug, chapter.data.chapterId)}>
                   <span class="chapter-list__number">{chapter.data.chapterId}</span>
-                  <span class="chapter-list__title">
-                    <strong>{chapter.data.title}</strong>
-                    <small>{chapter.data.summary}</small>
-                  </span>
-                  <time datetime={chapter.data.publishedAt.toISOString()}>
-                    {formatDate(chapter.data.publishedAt)}
-                  </time>
-                  <span class="chapter-list__arrow" aria-hidden="true">→</span>
+                  <span>{chapter.data.title}</span>
+                  <span class="chapter-list__arrow" aria-hidden="true">›</span>
                 </a>
               </li>
             ))}
           </ol>
         ) : (
-          <div class="chapter-list__empty">
-            <p>章节尚未发布。欢迎稍后再来。</p>
-          </div>
+          <p class="empty-state">暂无章节。</p>
         )
       }
     </section>
   </div>
 </BaseLayout>
-

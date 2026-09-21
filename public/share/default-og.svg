@@ -1,24 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
-  <defs>
-    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f7f1e8"/>
-      <stop offset="1" stop-color="#e8ddd0"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.82" cy="0.12" r="0.72">
-      <stop offset="0" stop-color="#b86e55" stop-opacity="0.34"/>
-      <stop offset="1" stop-color="#b86e55" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <rect width="1200" height="1200" fill="url(#paper)"/>
-  <rect width="1200" height="1200" fill="url(#glow)"/>
+  <rect width="1200" height="1200" fill="#ffffff"/>
   <g transform="translate(0 285)">
-    <path d="M80 82h1040v466H80z" fill="none" stroke="#9f5b44" stroke-opacity="0.24"/>
-    <path d="M930 118c89 0 150 65 150 158s-61 158-150 158-150-65-150-158 61-158 150-158Z" fill="none" stroke="#9f5b44" stroke-opacity="0.3" stroke-width="2"/>
-    <path d="M965 152c61 16 97 67 97 124 0 74-51 128-132 128" fill="none" stroke="#9f5b44" stroke-opacity="0.2" stroke-width="2"/>
-    <text x="130" y="170" fill="#9f5b44" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="7">STORIES · NOVELS · COMICS</text>
-    <text x="125" y="315" fill="#231f1b" font-family="Georgia, serif" font-size="78" font-weight="600">Raga Delusion</text>
-    <path d="M130 365h76" stroke="#9f5b44" stroke-width="4"/>
-    <text x="130" y="430" fill="#6d6259" font-family="Arial, sans-serif" font-size="25" letter-spacing="3">A quiet place for stories to unfold.</text>
-    <text x="130" y="510" fill="#9f5b44" font-family="Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="5">READING SITE</text>
+    <text x="80" y="325" fill="#202020" font-family="Arial, sans-serif" font-size="76" font-weight="600">Raga Delusion</text>
+    <path d="M80 365h1040" stroke="#e5e5e5"/>
   </g>
 </svg>

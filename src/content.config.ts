@@ -17,7 +17,6 @@ const works = defineCollection({
     status: z.enum(["upcoming", "serializing", "completed", "paused"]),
     cover: z.string().optional(),
     shareImage: z.string().optional(),
-    discordUrl: z.url().optional(),
     accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#9f5b44"),
     updatedAt: z.coerce.date(),
     draft: z.boolean().default(false),

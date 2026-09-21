@@ -1,5 +1,4 @@
 ---
-import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
 import { assetPath } from "../lib/urls";
 import { siteConfig } from "../site.config";
@@ -64,7 +63,6 @@ const socialImageUrl = new URL(assetPath(image), Astro.site ?? Astro.url.origin)
   <body>
     {hideChrome ? null : <Header />}
     <main id="main-content"><slot /></main>
-    {hideChrome ? null : <Footer />}
 
     <script>
       const themeButton = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
@@ -77,4 +75,3 @@ const socialImageUrl = new URL(assetPath(image), Astro.site ?? Astro.url.origin)
     </script>
   </body>
 </html>
-

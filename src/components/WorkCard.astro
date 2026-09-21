@@ -1,52 +1,23 @@
 ---
 import type { WorkEntry } from "../lib/content";
-import {
-  formatDate,
-  workStatusLabel,
-  workTypeLabel,
-} from "../lib/content";
-import { assetPath, workPath } from "../lib/urls";
+import { workStatusLabel, workTypeLabel } from "../lib/content";
+import { workPath } from "../lib/urls";
 
 interface Props {
   work: WorkEntry;
   chapterCount: number;
-  latestChapterTitle?: string;
 }
 
-const { work, chapterCount, latestChapterTitle } = Astro.props;
+const { work, chapterCount } = Astro.props;
 const { data } = work;
 ---
 
 <article class="work-card">
-  <a class="work-card__cover" href={workPath(data.slug)} aria-label={`打开《${data.title}》`}>
-    {
-      data.cover ? (
-        <img src={assetPath(data.cover)} alt={`${data.title}封面`} loading="lazy" />
-      ) : (
-        <span class="cover-placeholder" style={`--cover-accent: ${data.accent}`}>
-          <span class="cover-placeholder__eyebrow">{workTypeLabel(data.type)}</span>
-          <strong>{data.title}</strong>
-          <span class="cover-placeholder__rule" />
-          <small>{data.status === "upcoming" ? "敬请期待" : "Raga Delusion"}</small>
-        </span>
-      )
-    }
+  <a href={workPath(data.slug)}>
+    <span class="work-card__title">{data.title}</span>
+    <span class="work-card__details">
+      {workTypeLabel(data.type)} · {workStatusLabel(data.status)} · {chapterCount} 章
+    </span>
+    <span class="work-card__arrow" aria-hidden="true">›</span>
   </a>
-
-  <div class="work-card__body">
-    <div class="work-card__meta">
-      <span>{workTypeLabel(data.type)}</span>
-      <span>{workStatusLabel(data.status)}</span>
-    </div>
-    <h2><a href={workPath(data.slug)}>{data.title}</a></h2>
-    <p>{data.description}</p>
-    <div class="tag-list" aria-label="作品标签">
-      {data.tags.map((tag) => <span>{tag}</span>)}
-    </div>
-    <footer class="work-card__footer">
-      <span>{chapterCount > 0 ? `${chapterCount} 章` : "尚未发布章节"}</span>
-      <span>{latestChapterTitle ?? formatDate(data.updatedAt)}</span>
-    </footer>
-  </div>
 </article>
-

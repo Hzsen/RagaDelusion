@@ -1,6 +1,6 @@
 # Raga Delusion 阅读站
 
-一个使用 Astro 构建的静态小说 / 漫画阅读站。站点优先考虑手机阅读、稳定章节链接、Discord 分享预览，以及无需后台的内容更新流程。
+一个使用 Astro 构建的静态小说 / 漫画阅读站。首页直接显示书架，作品页直接显示章节目录。
 
 ## 本地预览
 
@@ -22,8 +22,7 @@ npm run build
 
 1. 复制 `content-templates/work.md` 到 `src/content/works/<作品英文名>.md`。
 2. 填写作品元数据；`slug` 发布后不要修改，它是永久链接的一部分。
-3. 将封面放入 `public/images/<作品英文名>/cover.webp`。
-4. 准备公开时，将 `draft` 改为 `false`。
+3. 准备公开时，将 `draft` 改为 `false`。
 
 作品 `type` 只能是：
 
@@ -66,13 +65,11 @@ public/images/<作品 slug>/<章节编号>/
 
 ## 图片与 Discord 分享
 
-- 封面推荐使用 WebP，竖版比例建议 2:3。
+- 书架不展示封面；如需为分享卡片指定图片，可填写 `shareImage`。
 - 分享图推荐使用 JPG 或 PNG，尺寸为 1200 × 630。
 - 网站默认分享图位于 `public/share/default-og.png`。
 - 作品和章节都可以通过 `shareImage` 覆盖默认分享图。
 - Discord 可能缓存旧预览；修改图片后，可临时给分享链接增加查询参数重新测试。
-
-如果需要讨论入口，在 `src/site.config.ts` 中填写全站 Discord 邀请链接。未填写时入口不会显示。
 
 ## 发布到 GitHub Pages
 

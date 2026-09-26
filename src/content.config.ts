@@ -33,6 +33,7 @@ const chapterBase = {
   order: z.number().int().positive(),
   publishedAt: z.coerce.date(),
   shareImage: z.string().optional(),
+  showSubsections: z.boolean().default(false),
   draft: z.boolean().default(false),
 };
 

@@ -45,7 +45,10 @@ const progressRecord = {
   chapterId: chapter.data.chapterId,
   chapterTitle: chapter.data.title,
 };
-const { Content } = await render(chapter);
+const { Content, headings } = await render(chapter);
+const subsections = chapter.data.showSubsections
+  ? headings.filter((heading) => heading.depth === 2)
+  : [];
 ---
 
 <BaseLayout
@@ -59,6 +62,17 @@ const { Content } = await render(chapter);
       <a class="back-link" href={workPath(work.data.slug)}>← {work.data.title} · 目录</a>
       <h1>{chapter.data.title}</h1>
     </header>
+
+    {subsections.length > 0 && (
+      <nav class="section-jump" aria-label="本章小节">
+        <span>本章小节</span>
+        <ol>
+          {subsections.map((heading) => (
+            <li><a href={`#${heading.slug}`}>{heading.text}</a></li>
+          ))}
+        </ol>
+      </nav>
+    )}
 
     {
       isNovel ? (
@@ -159,7 +173,7 @@ const { Content } = await render(chapter);
       }
 
       const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null");
-      if (saved?.path === progressRecord.path && saved.scrollY > 80) {
+      if (!location.hash && saved?.path === progressRecord.path && saved.scrollY > 80) {
         history.scrollRestoration = "manual";
         requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, saved.scrollY)));
       }

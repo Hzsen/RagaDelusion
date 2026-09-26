@@ -1,4 +1,5 @@
 ---
+import { render } from "astro:content";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   getPublishedChapters,
@@ -20,6 +21,13 @@ interface Props {
 
 const { work } = Astro.props;
 const chapters = await getPublishedChapters(work.data.slug, work.data.type);
+const chapterSubsections = await Promise.all(
+  chapters.map(async (chapter) => {
+    if (!chapter.data.showSubsections || chapter.collection !== "novelChapters") return [];
+    const { headings } = await render(chapter);
+    return headings.filter((heading) => heading.depth === 2);
+  }),
+);
 ---
 
 <BaseLayout
@@ -38,13 +46,24 @@ const chapters = await getPublishedChapters(work.data.slug, work.data.type);
       {
         chapters.length > 0 ? (
           <ol>
-            {chapters.map((chapter) => (
+            {chapters.map((chapter, index) => (
               <li>
                 <a href={chapterPath(work.data.slug, chapter.data.chapterId)}>
                   <span class="chapter-list__number">{chapter.data.chapterId}</span>
                   <span>{chapter.data.title}</span>
                   <span class="chapter-list__arrow" aria-hidden="true">›</span>
                 </a>
+                {chapterSubsections[index].length > 0 && (
+                  <ol class="chapter-list__subsections" aria-label={`${chapter.data.title}的小节`}>
+                    {chapterSubsections[index].map((heading) => (
+                      <li>
+                        <a href={`${chapterPath(work.data.slug, chapter.data.chapterId)}#${heading.slug}`}>
+                          {heading.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </li>
             ))}
           </ol>

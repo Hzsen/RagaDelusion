@@ -33,7 +33,6 @@ const chapterBase = {
   order: z.number().int().positive(),
   publishedAt: z.coerce.date(),
   shareImage: z.string().optional(),
-  showSubsections: z.boolean().default(false),
   draft: z.boolean().default(false),
 };
 
@@ -63,4 +62,22 @@ const comicChapters = defineCollection({
   }),
 });
 
-export const collections = { works, novelChapters, comicChapters };
+const novelSections = defineCollection({
+  loader: glob({
+    pattern: "**/*.{md,mdx}",
+    base: "./src/content/novel-sections",
+  }),
+  schema: z.object({
+    work: stableSlug,
+    chapterId: z.string().regex(/^\d{3,}$/, "章节编号至少三位，例如 001"),
+    sectionId: z.string().regex(/^\d{2,}$/, "小节编号至少两位，例如 01"),
+    title: z.string().min(1),
+    summary: z.string().min(1),
+    order: z.number().int().positive(),
+    publishedAt: z.coerce.date(),
+    shareImage: z.string().optional(),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { works, novelChapters, comicChapters, novelSections };

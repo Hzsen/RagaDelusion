@@ -1,0 +1,183 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../../../../../../layouts/BaseLayout.astro";
+import {
+  getPublishedChapters,
+  getPublishedSections,
+  getPublishedWorks,
+} from "../../../../../../lib/content";
+import { chapterPath, sectionPath, workPath } from "../../../../../../lib/urls";
+
+export async function getStaticPaths() {
+  const works = await getPublishedWorks();
+  const pages = await Promise.all(
+    works
+      .filter((work) => work.data.type === "novel")
+      .map(async (work) => {
+        const chapters = await getPublishedChapters(work.data.slug, "novel");
+        const orderedSections = (
+          await Promise.all(
+            chapters.map((chapter) =>
+              getPublishedSections(work.data.slug, chapter.data.chapterId),
+            ),
+          )
+        ).flat();
+
+        return orderedSections.map((section, index) => {
+          const chapter = chapters.find(
+            (candidate) => candidate.data.chapterId === section.data.chapterId,
+          );
+          if (!chapter) {
+            throw new Error(
+              `找不到小节所属章节：${work.data.slug}/${section.data.chapterId}`,
+            );
+          }
+
+          return {
+            params: {
+              work: work.data.slug,
+              chapter: section.data.chapterId,
+              section: section.data.sectionId,
+            },
+            props: {
+              work,
+              chapter,
+              section,
+              previousSection: orderedSections[index - 1],
+              nextSection: orderedSections[index + 1],
+            },
+          };
+        });
+      }),
+  );
+
+  return pages.flat();
+}
+
+const { work, chapter, section, previousSection, nextSection } = Astro.props;
+const { Content } = await render(section);
+const pagePath = sectionPath(work.data.slug, chapter.data.chapterId, section.data.sectionId);
+const readerTitle = `${chapter.data.title} · ${section.data.title}`;
+const progressRecord = {
+  path: pagePath,
+  workSlug: work.data.slug,
+  workTitle: work.data.title,
+  chapterId: chapter.data.chapterId,
+  chapterTitle: readerTitle,
+};
+const shareImage = section.data.shareImage ?? work.data.shareImage ?? work.data.cover;
+---
+
+<BaseLayout
+  title={`${section.data.title}｜${work.data.title}`}
+  description={section.data.summary}
+  image={shareImage}
+  type="article"
+>
+  <div class="reading-shell" data-reading-shell>
+    <header class="chapter-header">
+      <a class="back-link" href={chapterPath(work.data.slug, chapter.data.chapterId)}>
+        ← {work.data.title} · {chapter.data.title}
+      </a>
+      <h1>{section.data.title}</h1>
+    </header>
+
+    <article class="novel-body prose" data-novel-body>
+      <Content />
+    </article>
+
+    <nav class="chapter-navigation" aria-label="小节导航">
+      {
+        previousSection ? (
+          <a href={sectionPath(work.data.slug, previousSection.data.chapterId, previousSection.data.sectionId)}>
+            <small>上一节</small>
+            <strong>{previousSection.data.title}</strong>
+          </a>
+        ) : (
+          <span class="chapter-navigation__empty" aria-label="没有上一节"></span>
+        )
+      }
+      <a class="chapter-navigation__contents" href={workPath(work.data.slug)}>目录</a>
+      {
+        nextSection ? (
+          <a class="chapter-navigation__next" href={sectionPath(work.data.slug, nextSection.data.chapterId, nextSection.data.sectionId)}>
+            <small>下一节</small>
+            <strong>{nextSection.data.title}</strong>
+          </a>
+        ) : (
+          <span class="chapter-navigation__empty chapter-navigation__next" aria-label="没有下一节"></span>
+        )
+      }
+    </nav>
+  </div>
+
+  <div class="reader-tools" aria-label="阅读设置">
+    <button type="button" data-font-decrease aria-label="缩小字号">字−</button>
+    <button type="button" data-font-increase aria-label="放大字号">字＋</button>
+    <button type="button" data-reading-theme aria-label="切换明暗主题">明 / 暗</button>
+  </div>
+
+  <script define:vars={{ progressRecord }}>
+    const PROGRESS_KEY = "raga-progress-v1";
+    const SETTINGS_KEY = "raga-reader-settings-v1";
+    const readerShell = document.querySelector("[data-reading-shell]");
+    const fontSizes = [0.9, 1, 1.1, 1.2, 1.32, 1.45];
+    let fontSizeIndex = 2;
+    let saveScheduled = false;
+
+    function saveProgress() {
+      localStorage.setItem(
+        PROGRESS_KEY,
+        JSON.stringify({ ...progressRecord, scrollY, updatedAt: new Date().toISOString() }),
+      );
+      saveScheduled = false;
+    }
+
+    function scheduleSave() {
+      if (!saveScheduled) {
+        saveScheduled = true;
+        requestAnimationFrame(saveProgress);
+      }
+    }
+
+    function applyFontSize() {
+      if (readerShell) readerShell.style.setProperty("--reader-scale", fontSizes[fontSizeIndex]);
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ fontSizeIndex }));
+    }
+
+    try {
+      const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+      if (Number.isInteger(settings?.fontSizeIndex)) {
+        fontSizeIndex = Math.max(0, Math.min(fontSizes.length - 1, settings.fontSizeIndex));
+        applyFontSize();
+      }
+
+      const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null");
+      if (!location.hash && saved?.path === progressRecord.path && saved.scrollY > 80) {
+        history.scrollRestoration = "manual";
+        requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, saved.scrollY)));
+      }
+    } catch {
+      localStorage.removeItem(PROGRESS_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+    }
+
+    document.querySelector("[data-font-decrease]")?.addEventListener("click", () => {
+      fontSizeIndex = Math.max(0, fontSizeIndex - 1);
+      applyFontSize();
+    });
+    document.querySelector("[data-font-increase]")?.addEventListener("click", () => {
+      fontSizeIndex = Math.min(fontSizes.length - 1, fontSizeIndex + 1);
+      applyFontSize();
+    });
+    document.querySelector("[data-reading-theme]")?.addEventListener("click", () => {
+      const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem("raga-theme", nextTheme);
+    });
+
+    addEventListener("scroll", scheduleSave, { passive: true });
+    addEventListener("pagehide", saveProgress);
+    saveProgress();
+  </script>
+</BaseLayout>

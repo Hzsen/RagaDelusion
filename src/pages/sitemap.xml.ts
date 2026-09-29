@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
-import { getPublishedChapters, getPublishedWorks } from "../lib/content";
-import { chapterPath, sitePath, workPath } from "../lib/urls";
+import { getPublishedChapters, getPublishedSections, getPublishedWorks } from "../lib/content";
+import { chapterPath, sectionPath, sitePath, workPath } from "../lib/urls";
 
 function escapeXml(value: string): string {
   return value.replace(/[<>&'\"]/g, (character) => {
@@ -26,6 +26,14 @@ export const GET: APIRoute = async ({ site }) => {
     const chapters = await getPublishedChapters(work.data.slug, work.data.type);
     for (const chapter of chapters) {
       locations.push(chapterPath(work.data.slug, chapter.data.chapterId));
+      if (chapter.collection === "novelChapters") {
+        const sections = await getPublishedSections(work.data.slug, chapter.data.chapterId);
+        for (const section of sections) {
+          locations.push(
+            sectionPath(work.data.slug, chapter.data.chapterId, section.data.sectionId),
+          );
+        }
+      }
     }
   }
 
@@ -37,4 +45,3 @@ export const GET: APIRoute = async ({ site }) => {
     headers: { "Content-Type": "application/xml; charset=utf-8" },
   });
 };
-

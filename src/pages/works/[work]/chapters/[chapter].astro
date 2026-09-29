@@ -3,12 +3,14 @@ import { render } from "astro:content";
 import BaseLayout from "../../../../layouts/BaseLayout.astro";
 import {
   getPublishedChapters,
+  getPublishedSections,
   getPublishedWorks,
   type ChapterEntry,
 } from "../../../../lib/content";
 import {
   assetPath,
   chapterPath,
+  sectionPath,
   workPath,
 } from "../../../../lib/urls";
 
@@ -17,24 +19,30 @@ export async function getStaticPaths() {
   const paths = await Promise.all(
     works.map(async (work) => {
       const chapters = await getPublishedChapters(work.data.slug, work.data.type);
-      return chapters.map((chapter, index) => ({
-        params: {
-          work: work.data.slug,
-          chapter: chapter.data.chapterId,
-        },
-        props: {
-          work,
-          chapter,
-          previousChapter: chapters[index - 1],
-          nextChapter: chapters[index + 1],
-        },
-      }));
+      return Promise.all(
+        chapters.map(async (chapter, index) => ({
+          params: {
+            work: work.data.slug,
+            chapter: chapter.data.chapterId,
+          },
+          props: {
+            work,
+            chapter,
+            previousChapter: chapters[index - 1],
+            nextChapter: chapters[index + 1],
+            sections:
+              work.data.type === "novel"
+                ? await getPublishedSections(work.data.slug, chapter.data.chapterId)
+                : [],
+          },
+        })),
+      );
     }),
   );
   return paths.flat();
 }
 
-const { work, chapter, previousChapter, nextChapter } = Astro.props;
+const { work, chapter, previousChapter, nextChapter, sections } = Astro.props;
 const isNovel = work.data.type === "novel";
 const chapterTitle = `${chapter.data.chapterId} · ${chapter.data.title}`;
 const shareImage = chapter.data.shareImage ?? work.data.shareImage ?? work.data.cover;
@@ -45,10 +53,7 @@ const progressRecord = {
   chapterId: chapter.data.chapterId,
   chapterTitle: chapter.data.title,
 };
-const { Content, headings } = await render(chapter);
-const subsections = chapter.data.showSubsections
-  ? headings.filter((heading) => heading.depth === 2)
-  : [];
+const { Content } = await render(chapter);
 ---
 
 <BaseLayout
@@ -62,17 +67,6 @@ const subsections = chapter.data.showSubsections
       <a class="back-link" href={workPath(work.data.slug)}>← {work.data.title} · 目录</a>
       <h1>{chapter.data.title}</h1>
     </header>
-
-    {subsections.length > 0 && (
-      <nav class="section-jump" aria-label="本章小节">
-        <span>本章小节</span>
-        <ol>
-          {subsections.map((heading) => (
-            <li><a href={`#${heading.slug}`}>{heading.text}</a></li>
-          ))}
-        </ol>
-      </nav>
-    )}
 
     {
       isNovel ? (
@@ -98,6 +92,22 @@ const subsections = chapter.data.showSubsections
         </article>
       )
     }
+
+    {sections.length > 0 && (
+      <section class="section-index" aria-labelledby="section-index-title">
+        <h2 id="section-index-title">本章小节</h2>
+        <ol>
+          {sections.map((section) => (
+            <li>
+              <a href={sectionPath(work.data.slug, chapter.data.chapterId, section.data.sectionId)}>
+                <strong>{section.data.title}</strong>
+                <span>{section.data.summary}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
 
     <nav class="chapter-navigation" aria-label="章节导航">
       {

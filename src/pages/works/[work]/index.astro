@@ -1,14 +1,14 @@
 ---
-import { render } from "astro:content";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   getPublishedChapters,
+  getPublishedSections,
   getPublishedWorks,
   workStatusLabel,
   workTypeLabel,
   type WorkEntry,
 } from "../../../lib/content";
-import { chapterPath, sitePath } from "../../../lib/urls";
+import { chapterPath, sectionPath, sitePath } from "../../../lib/urls";
 
 export async function getStaticPaths() {
   const works = await getPublishedWorks();
@@ -21,11 +21,10 @@ interface Props {
 
 const { work } = Astro.props;
 const chapters = await getPublishedChapters(work.data.slug, work.data.type);
-const chapterSubsections = await Promise.all(
+const chapterSections = await Promise.all(
   chapters.map(async (chapter) => {
-    if (!chapter.data.showSubsections || chapter.collection !== "novelChapters") return [];
-    const { headings } = await render(chapter);
-    return headings.filter((heading) => heading.depth === 2);
+    if (chapter.collection !== "novelChapters") return [];
+    return getPublishedSections(work.data.slug, chapter.data.chapterId);
   }),
 );
 ---
@@ -53,12 +52,12 @@ const chapterSubsections = await Promise.all(
                   <span>{chapter.data.title}</span>
                   <span class="chapter-list__arrow" aria-hidden="true">›</span>
                 </a>
-                {chapterSubsections[index].length > 0 && (
+                {chapterSections[index].length > 0 && (
                   <ol class="chapter-list__subsections" aria-label={`${chapter.data.title}的小节`}>
-                    {chapterSubsections[index].map((heading) => (
+                    {chapterSections[index].map((section) => (
                       <li>
-                        <a href={`${chapterPath(work.data.slug, chapter.data.chapterId)}#${heading.slug}`}>
-                          {heading.text}
+                        <a href={sectionPath(work.data.slug, chapter.data.chapterId, section.data.sectionId)}>
+                          {section.data.title}
                         </a>
                       </li>
                     ))}

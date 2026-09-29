@@ -4,6 +4,7 @@ export type WorkEntry = CollectionEntry<"works">;
 export type NovelChapterEntry = CollectionEntry<"novelChapters">;
 export type ComicChapterEntry = CollectionEntry<"comicChapters">;
 export type ChapterEntry = NovelChapterEntry | ComicChapterEntry;
+export type NovelSectionEntry = CollectionEntry<"novelSections">;
 
 export async function getPublishedWorks(): Promise<WorkEntry[]> {
   const works = await getCollection("works", ({ data }) => !data.draft);
@@ -30,6 +31,19 @@ export async function getPublishedChapters(
   return chapters.sort((left, right) => left.data.order - right.data.order);
 }
 
+export async function getPublishedSections(
+  workSlug: string,
+  chapterId: string,
+): Promise<NovelSectionEntry[]> {
+  const sections = await getCollection(
+    "novelSections",
+    ({ data }) =>
+      !data.draft && data.work === workSlug && data.chapterId === chapterId,
+  );
+
+  return sections.sort((left, right) => left.data.order - right.data.order);
+}
+
 export function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
@@ -51,4 +65,3 @@ export function workStatusLabel(status: WorkEntry["data"]["status"]): string {
   };
   return labels[status];
 }
-

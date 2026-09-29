@@ -8,6 +8,7 @@ const PUBLIC_ROOT = join(PROJECT_ROOT, "public");
 const CONTENT_ROOT = join(PROJECT_ROOT, "src", "content");
 const CONTENT_EXTENSIONS = new Set([".md", ".mdx"]);
 const CHAPTER_ID_PATTERN = /^\d{3,}$/;
+const SECTION_ID_PATTERN = /^\d{2,}$/;
 
 function listContentFiles(directory) {
   if (!existsSync(directory)) return [];
@@ -93,6 +94,50 @@ function validateChapters(entries, expectedType, worksBySlug, errors) {
   }
 }
 
+function validateSections(sections, worksBySlug, chapters, errors) {
+  const chapterKeys = new Set(
+    chapters.map((chapter) => `${chapter.data.work}:${chapter.data.chapterId}`),
+  );
+  const sectionKeys = new Set();
+  const sectionOrders = new Set();
+
+  for (const section of sections) {
+    const work = worksBySlug.get(section.data.work);
+    if (!work || work.data.type !== "novel") {
+      addError(errors, section.filePath, "小节必须隶属于已登记的小说作品");
+      continue;
+    }
+
+    const chapterKey = `${section.data.work}:${section.data.chapterId}`;
+    if (!CHAPTER_ID_PATTERN.test(String(section.data.chapterId ?? ""))) {
+      addError(errors, section.filePath, "chapterId 必须是至少三位数字，例如 001");
+    }
+    if (!chapterKeys.has(chapterKey)) {
+      addError(errors, section.filePath, `找不到所属章节：${chapterKey}`);
+    }
+    if (!SECTION_ID_PATTERN.test(String(section.data.sectionId ?? ""))) {
+      addError(errors, section.filePath, "sectionId 必须是至少两位数字，例如 01");
+    }
+
+    const sectionKey = `${chapterKey}:${section.data.sectionId}`;
+    if (sectionKeys.has(sectionKey)) {
+      addError(errors, section.filePath, `小节编号重复：${sectionKey}`);
+    }
+    sectionKeys.add(sectionKey);
+
+    const orderKey = `${chapterKey}:${section.data.order}`;
+    if (sectionOrders.has(orderKey)) {
+      addError(errors, section.filePath, `章节内小节顺序重复：${orderKey}`);
+    }
+    sectionOrders.add(orderKey);
+
+    if (!section.data.draft && work.data.draft) {
+      addError(errors, section.filePath, "已发布小节不能隶属于草稿作品");
+    }
+    if (!section.data.draft) validateLocalAsset(section, section.data.shareImage, errors);
+  }
+}
+
 const errors = [];
 const works = readEntries("works");
 const worksBySlug = validateWorks(works, errors);
@@ -102,8 +147,15 @@ for (const work of works) {
     validateLocalAsset(work, work.data.shareImage, errors);
   }
 }
-validateChapters(readEntries("novel-chapters"), "novel", worksBySlug, errors);
+const novelChapters = readEntries("novel-chapters");
+validateChapters(novelChapters, "novel", worksBySlug, errors);
 validateChapters(readEntries("comic-chapters"), "comic", worksBySlug, errors);
+validateSections(
+  readEntries("novel-sections"),
+  worksBySlug,
+  novelChapters,
+  errors,
+);
 
 if (errors.length > 0) {
   console.error(`内容校验失败（${errors.length} 项）：\n${errors.map((error) => `- ${error}`).join("\n")}`);

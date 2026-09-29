@@ -1,8 +1,8 @@
 ---
 import WorkCard from "../components/WorkCard.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getPublishedChapters, getPublishedWorks } from "../lib/content";
-import { chapterPath } from "../lib/urls";
+import { getPublishedChapters, getPublishedSections, getPublishedWorks } from "../lib/content";
+import { chapterPath, sectionPath } from "../lib/urls";
 
 const works = await getPublishedWorks();
 const workCards = await Promise.all(
@@ -11,13 +11,28 @@ const workCards = await Promise.all(
     return {
       work,
       chapterCount: chapters.length,
-      chapterPaths: chapters.map((chapter) =>
-        chapterPath(work.data.slug, chapter.data.chapterId),
-      ),
+      readingPaths: [
+        ...chapters.map((chapter) =>
+          chapterPath(work.data.slug, chapter.data.chapterId),
+        ),
+        ...(
+          work.data.type === "novel"
+            ? await Promise.all(
+                chapters.map((chapter) =>
+                  getPublishedSections(work.data.slug, chapter.data.chapterId),
+                ),
+              )
+            : []
+        )
+          .flat()
+          .map((section) =>
+            sectionPath(work.data.slug, section.data.chapterId, section.data.sectionId),
+          ),
+      ],
     };
   }),
 );
-const publishedChapterPaths = workCards.flatMap((card) => card.chapterPaths);
+const publishedReadingPaths = workCards.flatMap((card) => card.readingPaths);
 ---
 
 <BaseLayout>
@@ -39,12 +54,12 @@ const publishedChapterPaths = workCards.flatMap((card) => card.chapterPaths);
     }
   </section>
 
-  <script define:vars={{ publishedChapterPaths }}>
+  <script define:vars={{ publishedReadingPaths }}>
     const link = document.querySelector("[data-continue-link]");
 
     try {
       const progress = JSON.parse(localStorage.getItem("raga-progress-v1") ?? "null");
-      if (progress && link && publishedChapterPaths.includes(progress.path)) {
+      if (progress && link && publishedReadingPaths.includes(progress.path)) {
         link.href = progress.path;
         const workName = link.querySelector("[data-continue-work]");
         const chapterName = link.querySelector("[data-continue-chapter]");

@@ -16,6 +16,10 @@ export function chapterPath(workSlug: string, chapterId: string): string {
   return sitePath(`works/${workSlug}/chapters/${chapterId}/`);
 }
 
+export function sectionPath(workSlug: string, chapterId: string, sectionId: string): string {
+  return sitePath(`works/${workSlug}/chapters/${chapterId}/sections/${sectionId}/`);
+}
+
 export function assetPath(path: string): string {
   if (/^(?:https?:)?\/\//.test(path) || path.startsWith("data:")) {
     return path;
@@ -23,4 +27,3 @@ export function assetPath(path: string): string {
 
   return sitePath(path);
 }
-

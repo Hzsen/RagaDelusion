@@ -271,12 +271,6 @@ img {
   font-weight: 500;
 }
 
-.section-index span {
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.6;
-}
-
 .reading-shell {
   width: min(720px, calc(100% - 40px));
   margin-inline: auto;

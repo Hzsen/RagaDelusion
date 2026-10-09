@@ -320,6 +320,40 @@ img {
   scroll-margin-top: 28px;
 }
 
+.prose table {
+  width: 100%;
+  margin: 0 0 1.8em;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.88em;
+  line-height: 1.65;
+  font-variant-numeric: tabular-nums;
+}
+
+.prose th,
+.prose td {
+  padding: 0.65em 0.75em;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.prose th {
+  border-bottom-width: 2px;
+  font-weight: 600;
+}
+
+.prose th:first-child,
+.prose td:first-child {
+  width: 42%;
+  text-align: left;
+}
+
+.prose th:last-child,
+.prose td:last-child {
+  text-align: right;
+}
+
 .prose blockquote {
   margin: 2em 0;
   padding-left: 20px;
